@@ -28,5 +28,6 @@
     "src/**/*.d.ts",
     "vite.config.ts",
     "manifest.config.ts"
-  ]
+  ],
+  "exclude": ["src/**/*.test.ts"]
 }

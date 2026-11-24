@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { titleFromMessage } from '@/format'
+import { reportedFailure } from '@/evaluate'
 import { allowActiveTab, runInActiveTab } from '@/page'
 import { finishCommand, openChannel, postExtension, readBot, readCommand } from '@/proxy'
 import { loadState, saveState } from '@/storage'
@@ -165,9 +166,7 @@ async function pullCommand(): Promise<void> {
       const result = await runInActiveTab(command.code)
       await finishCommand(store.proxy, command.id, { result })
     } catch (error) {
-      await finishCommand(store.proxy, command.id, {
-        error: error instanceof Error ? error.message : 'Could not run it.',
-      })
+      await finishCommand(store.proxy, command.id, { error: reportedFailure(error) })
     }
   } finally {
     commanding = false
