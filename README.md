@@ -31,4 +31,4 @@ cd app
 npm install
 ```
 
-Su Netlify la cartella di pubblicazione è `app`. Imposta la variabile `PROXY_TOKEN`. Se vuoi che un messaggio in ingresso venga anche inoltrato al webhook ufficiale del Bot, aggiungi `BOT_WEBHOOK_URL` e, se serve, `BOT_WEBHOOK_KEY`.
+Su Netlify la cartella di pubblicazione è `app`. Genera la chiave con `npm run token` e impostala come variabile `PROXY_TOKEN`. Se vuoi che un messaggio in ingresso venga anche inoltrato al webhook ufficiale del Bot, aggiungi `BOT_WEBHOOK_URL` e, se serve, `BOT_WEBHOOK_KEY`.
