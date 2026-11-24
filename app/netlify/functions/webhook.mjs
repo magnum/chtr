@@ -18,5 +18,5 @@ export default function webhook(request) {
 }
 
 export const config = {
-  path: ['/webhook/in', '/webhook/out'],
+  path: ['/webhook/extension', '/webhook/bot'],
 }

@@ -6,7 +6,7 @@ export interface ProxyMessage {
   chatId: string
 }
 
-function endpoint(proxy: ProxyConfig, path: 'in' | 'out', after = ''): string {
+function endpoint(proxy: ProxyConfig, path: 'extension' | 'bot', after = ''): string {
   const url = new URL(`${proxy.baseUrl}/webhook/${path}`)
   if (after) url.searchParams.set('after', after)
   return url.toString()
@@ -39,7 +39,7 @@ export function parseProxy(baseUrl: string, token: string): ProxyConfig {
 
 export async function connectProxy(proxy: ProxyConfig): Promise<void> {
   await allowOrigin(proxy.baseUrl)
-  const response = await fetch(endpoint(proxy, 'out'), {
+  const response = await fetch(endpoint(proxy, 'bot'), {
     headers: { authorization: `Bearer ${proxy.token}` },
     cache: 'no-store',
     credentials: 'omit',
@@ -47,8 +47,8 @@ export async function connectProxy(proxy: ProxyConfig): Promise<void> {
   if (!response.ok) throw new Error('Il proxy ha rifiutato la chiave o non risponde.')
 }
 
-export async function postIn(proxy: ProxyConfig, message: string, chatId: string): Promise<void> {
-  const response = await fetch(endpoint(proxy, 'in'), {
+export async function postExtension(proxy: ProxyConfig, message: string, chatId: string): Promise<void> {
+  const response = await fetch(endpoint(proxy, 'extension'), {
     method: 'POST',
     headers: {
       authorization: `Bearer ${proxy.token}`,
@@ -61,8 +61,8 @@ export async function postIn(proxy: ProxyConfig, message: string, chatId: string
   if (!response.ok) throw new Error('Il proxy non ha accettato il messaggio.')
 }
 
-export async function readOut(proxy: ProxyConfig, after: string): Promise<ProxyMessage[]> {
-  const response = await fetch(endpoint(proxy, 'out', after), {
+export async function readBot(proxy: ProxyConfig, after: string): Promise<ProxyMessage[]> {
+  const response = await fetch(endpoint(proxy, 'bot', after), {
     headers: { authorization: `Bearer ${proxy.token}` },
     cache: 'no-store',
     credentials: 'omit',
@@ -78,9 +78,9 @@ export async function readOut(proxy: ProxyConfig, after: string): Promise<ProxyM
   })
 }
 
-export function webhookUrls(proxy: ProxyConfig): { webhookIn: string; webhookOut: string } {
+export function webhookUrls(proxy: ProxyConfig): { extension: string; bot: string } {
   return {
-    webhookIn: `${proxy.baseUrl}/webhook/in`,
-    webhookOut: `${proxy.baseUrl}/webhook/out`,
+    extension: `${proxy.baseUrl}/webhook/extension`,
+    bot: `${proxy.baseUrl}/webhook/bot`,
   }
 }

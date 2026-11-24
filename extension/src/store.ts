@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import { titleFromMessage } from '@/format'
-import { connectProxy, parseProxy, postIn, readOut } from '@/proxy'
+import { connectProxy, parseProxy, postExtension, readBot } from '@/proxy'
 import { loadState, saveState } from '@/storage'
 import type { Chat, ChatMessage, PendingChat, ProviderId, ProxyConfig, View } from '@/types'
 
@@ -67,7 +67,7 @@ function scheduleSave(): void {
 
 let pollTimer = 0
 let polling = false
-let lastOutId = ''
+let lastBotId = ''
 
 function knownIds(): Set<string> {
   const ids = new Set<string>()
@@ -97,10 +97,10 @@ async function pullReplies(): Promise<void> {
   if (!store.proxy || polling) return
   polling = true
   try {
-    const incoming = await readOut(store.proxy, lastOutId)
+    const incoming = await readBot(store.proxy, lastBotId)
     for (const item of incoming) {
       appendReply(item)
-      lastOutId = item.id
+      lastBotId = item.id
     }
   } finally {
     polling = false
@@ -200,7 +200,7 @@ export async function connectProxySettings(baseUrl: string, token: string): Prom
 export async function disconnectProxy(): Promise<void> {
   store.proxy = null
   store.pending = null
-  lastOutId = ''
+  lastBotId = ''
   window.clearInterval(pollTimer)
   await persist()
 }
@@ -219,7 +219,7 @@ async function deliver(chat: Chat, content: string): Promise<void> {
   const proxy = store.proxy
   if (!proxy) return
   try {
-    await postIn(proxy, content, chat.id)
+    await postExtension(proxy, content, chat.id)
   } catch (error) {
     chat.messages.push({
       id: crypto.randomUUID(),

@@ -64,7 +64,7 @@ async function copy(value: string, label: string): Promise<void> {
 
     <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
       <p class="leading-relaxed text-gray-400">
-        Il proxy su Netlify riceve i messaggi. Al Bot dai lo stesso webhook in ingresso e gli chiedi di scrivere le risposte sul webhook in uscita.
+        L’estensione scrive su /webhook/extension. Il Bot scrive le risposte su /webhook/bot, e da lì il pannello le legge.
       </p>
       <p v-if="pendingNote" class="mt-3 rounded-md bg-gray-800 px-3 py-2 text-gray-100">
         {{ pendingNote }}
@@ -111,21 +111,21 @@ async function copy(value: string, label: string): Promise<void> {
       <div v-else-if="store.proxy && urls" class="mt-4 grid gap-3">
         <p class="text-gray-400">Chiave {{ maskKey(store.proxy.token) }}</p>
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
-          <p class="text-gray-400">webhook_in</p>
-          <p class="mt-1 break-all">{{ urls.webhookIn }}</p>
-          <button type="button" class="mt-2 text-blue-400" @click="copy(urls.webhookIn, 'in')">
-            {{ copied === 'in' ? 'Copiato' : 'Copia' }}
+          <p class="text-gray-400">webhook/extension</p>
+          <p class="mt-1 break-all">{{ urls.extension }}</p>
+          <button type="button" class="mt-2 text-blue-400" @click="copy(urls.extension, 'extension')">
+            {{ copied === 'extension' ? 'Copiato' : 'Copia' }}
           </button>
         </div>
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
-          <p class="text-gray-400">webhook_out</p>
-          <p class="mt-1 break-all">{{ urls.webhookOut }}</p>
-          <button type="button" class="mt-2 text-blue-400" @click="copy(urls.webhookOut, 'out')">
-            {{ copied === 'out' ? 'Copiato' : 'Copia' }}
+          <p class="text-gray-400">webhook/bot</p>
+          <p class="mt-1 break-all">{{ urls.bot }}</p>
+          <button type="button" class="mt-2 text-blue-400" @click="copy(urls.bot, 'bot')">
+            {{ copied === 'bot' ? 'Copiato' : 'Copia' }}
           </button>
         </div>
         <p class="leading-relaxed text-gray-400">
-          Chiedi al Bot di leggere i messaggi da webhook_in e di mandare lì tutto quello che scrive su webhook_out. La chiave va nell’intestazione Authorization: Bearer.
+          Il proxy inoltra i messaggi dell’estensione al webhook della routine. Il Bot manda ogni risposta su webhook/bot, con Authorization: Bearer e la chiave del proxy.
         </p>
         <div class="flex gap-2">
           <UiButton variant="ghost" @click="replacing = true">Sostituisci</UiButton>

@@ -25,8 +25,8 @@ function authorized(request, env) {
 }
 
 function bucketFrom(url) {
-  if (url.pathname === '/webhook/in') return 'in'
-  if (url.pathname === '/webhook/out') return 'out'
+  if (url.pathname === '/webhook/extension') return 'extension'
+  if (url.pathname === '/webhook/bot') return 'bot'
   return ''
 }
 
@@ -84,7 +84,7 @@ export async function handle(request, store, env) {
   }
   await push(store, bucket, item)
 
-  if (bucket !== 'in') return json({ ok: true, id: item.id })
+  if (bucket !== 'extension') return json({ ok: true, id: item.id })
 
   try {
     const forwarded = await forwardIn(env, item)

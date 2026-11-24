@@ -131,7 +131,7 @@ async function remove(): Promise<void> {
       <div v-if="!chat.messages.length" class="py-6">
         <p>Ciao.</p>
         <p class="mt-3 max-w-[18rem] leading-relaxed text-gray-400">
-          Il messaggio va al webhook in ingresso. La risposta del Bot arriva dal webhook in uscita.
+          Il messaggio va su /webhook/extension. La risposta del Bot arriva da /webhook/bot.
           Invio manda il messaggio, Maiusc+Invio va a capo.
         </p>
       </div>
