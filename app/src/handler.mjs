@@ -24,10 +24,16 @@ function authorized(request, env) {
   return diff === 0
 }
 
-function bucketFrom(url) {
-  if (url.pathname === '/webhook/extension') return 'extension'
-  if (url.pathname === '/webhook/bot') return 'bot'
-  return ''
+const CONNECTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function routeOf(url) {
+  const parts = url.pathname.split('/').filter(Boolean)
+  if (parts.length === 2 && parts[0] === 'webhook' && parts[1] === 'connect') return { kind: 'connect' }
+  if (parts.length === 3 && parts[0] === 'webhook' && (parts[1] === 'extension' || parts[1] === 'bot')) {
+    if (!CONNECTION_ID.test(parts[2])) return { kind: 'unknown' }
+    return { kind: 'queue', side: parts[1], connectionId: parts[2].toLowerCase() }
+  }
+  return { kind: 'unknown' }
 }
 
 function textOf(body) {
@@ -37,7 +43,7 @@ function textOf(body) {
   return ''
 }
 
-async function forwardIn(env, item) {
+async function forwardIn(env, item, connectionId, origin) {
   const target = env.BOT_WEBHOOK_URL ?? ''
   if (!target) return false
   const headers = new Headers({ 'content-type': 'application/json' })
@@ -45,7 +51,12 @@ async function forwardIn(env, item) {
   const response = await fetch(target, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ message: item.message, chatId: item.chatId }),
+    body: JSON.stringify({
+      message: item.message,
+      chatId: item.chatId,
+      connectionId,
+      replyUrl: `${origin}/webhook/bot/${connectionId}`,
+    }),
   })
   return response.ok
 }
@@ -54,11 +65,17 @@ export async function handle(request, store, env) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
 
   const url = new URL(request.url)
-  const bucket = bucketFrom(url)
-  if (!bucket) return json({ error: 'Percorso sconosciuto.' }, 404)
+  const route = routeOf(url)
+  if (route.kind === 'unknown') return json({ error: 'Percorso sconosciuto.' }, 404)
   if (!env.PROXY_TOKEN) return json({ error: 'PROXY_TOKEN non configurato.' }, 500)
   if (!authorized(request, env)) return json({ error: 'Non autorizzato.' }, 401)
 
+  if (route.kind === 'connect') {
+    if (request.method !== 'POST') return json({ error: 'Metodo non permesso.' }, 405)
+    return json({ connectionId: crypto.randomUUID() })
+  }
+
+  const bucket = `${route.connectionId}:${route.side}`
   if (request.method === 'GET') {
     const list = (await store.getJSON(bucket)) ?? []
     return json({ messages: since(list, url.searchParams.get('after') ?? '') })
@@ -84,10 +101,10 @@ export async function handle(request, store, env) {
   }
   await push(store, bucket, item)
 
-  if (bucket !== 'extension') return json({ ok: true, id: item.id })
+  if (route.side !== 'extension') return json({ ok: true, id: item.id })
 
   try {
-    const forwarded = await forwardIn(env, item)
+    const forwarded = await forwardIn(env, item, route.connectionId, url.origin)
     return json({ ok: true, id: item.id, forwarded })
   } catch {
     return json({ ok: true, id: item.id, forwarded: false })

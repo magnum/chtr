@@ -7,7 +7,7 @@ export interface ProxyMessage {
 }
 
 function endpoint(proxy: ProxyConfig, path: 'extension' | 'bot', after = ''): string {
-  const url = new URL(`${proxy.baseUrl}/webhook/${path}`)
+  const url = new URL(`${proxy.baseUrl}/webhook/${path}/${proxy.connectionId}`)
   if (after) url.searchParams.set('after', after)
   return url.toString()
 }
@@ -21,7 +21,7 @@ async function allowOrigin(baseUrl: string): Promise<void> {
   if (!granted) throw new Error('Permesso di rete negato per il proxy.')
 }
 
-export function parseProxy(baseUrl: string, token: string): ProxyConfig {
+export function parseProxy(baseUrl: string, token: string): Omit<ProxyConfig, 'connectionId'> {
   const trimmedUrl = baseUrl.trim().replace(/\/$/, '')
   const trimmedToken = token.trim()
   if (!trimmedUrl || !trimmedToken) throw new Error('Servono l’indirizzo del proxy e la chiave.')
@@ -35,6 +35,25 @@ export function parseProxy(baseUrl: string, token: string): ProxyConfig {
     throw new Error('L’indirizzo del proxy deve essere http o https.')
   }
   return { baseUrl: url.origin, token: trimmedToken }
+}
+
+export async function openChannel(baseUrl: string, token: string): Promise<ProxyConfig> {
+  const parsed = parseProxy(baseUrl, token)
+  await allowOrigin(parsed.baseUrl)
+  const response = await fetch(`${parsed.baseUrl}/webhook/connect`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${parsed.token}` },
+    cache: 'no-store',
+    credentials: 'omit',
+  })
+  if (!response.ok) throw new Error('Il proxy ha rifiutato la chiave o non risponde.')
+  const body = (await response.json()) as { connectionId?: unknown }
+  if (typeof body.connectionId !== 'string' || !body.connectionId.trim()) {
+    throw new Error('Il proxy non ha assegnato un canale.')
+  }
+  const proxy = { ...parsed, connectionId: body.connectionId.trim() }
+  await connectProxy(proxy)
+  return proxy
 }
 
 export async function connectProxy(proxy: ProxyConfig): Promise<void> {
@@ -80,7 +99,7 @@ export async function readBot(proxy: ProxyConfig, after: string): Promise<ProxyM
 
 export function webhookUrls(proxy: ProxyConfig): { extension: string; bot: string } {
   return {
-    extension: `${proxy.baseUrl}/webhook/extension`,
-    bot: `${proxy.baseUrl}/webhook/bot`,
+    extension: `${proxy.baseUrl}/webhook/extension/${proxy.connectionId}`,
+    bot: `${proxy.baseUrl}/webhook/bot/${proxy.connectionId}`,
   }
 }

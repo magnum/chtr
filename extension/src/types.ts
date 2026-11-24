@@ -33,6 +33,7 @@ export interface PendingChat {
 export interface ProxyConfig {
   baseUrl: string
   token: string
+  connectionId: string
 }
 
 export interface PersistedState {

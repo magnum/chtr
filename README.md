@@ -17,10 +17,12 @@ In Chrome, Edge o Brave: `chrome://extensions`, modalità sviluppatore, carica l
 
 Scorciatoia suggerita: `⌘⇧Y` su Mac, `Ctrl+Shift+Y` altrove.
 
-Nel pannello imposta l’indirizzo del sito Netlify e la chiave del proxy. Ti mostra due URL:
+Nel pannello imposta l’indirizzo del sito Netlify e la chiave del proxy. Al collegamento il proxy assegna un `connection_id` e il pannello lo salva. Ti mostra due URL di quel canale:
 
-- `webhook/extension`, dove il pannello scrive
-- `webhook/bot`, dove il Bot scrive le risposte e da dove il pannello le legge
+- `webhook/extension/<connection_id>`, dove il pannello scrive
+- `webhook/bot/<connection_id>`, dove il Bot scrive le risposte e da dove il pannello le legge
+
+Un nuovo collegamento apre un canale nuovo. In quel caso dai al Bot il nuovo `webhook/bot`.
 
 La chiave va nell’intestazione `Authorization: Bearer`.
 

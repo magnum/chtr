@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import { titleFromMessage } from '@/format'
-import { connectProxy, parseProxy, postExtension, readBot } from '@/proxy'
+import { openChannel, postExtension, readBot } from '@/proxy'
 import { loadState, saveState } from '@/storage'
 import type { Chat, ChatMessage, PendingChat, ProviderId, ProxyConfig, View } from '@/types'
 
@@ -228,8 +228,7 @@ export function requestChat(provider: ProviderId, model: string): void {
 }
 
 export async function connectProxySettings(baseUrl: string, token: string): Promise<void> {
-  const proxy = parseProxy(baseUrl, token)
-  await connectProxy(proxy)
+  const proxy = await openChannel(baseUrl, token)
   store.proxy = proxy
   await persist()
   startPolling()

@@ -64,7 +64,7 @@ async function copy(value: string, label: string): Promise<void> {
 
     <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
       <p class="text-base leading-relaxed text-gray-500">
-        L’estensione scrive su /webhook/extension. Il Bot scrive le risposte su /webhook/bot, e da lì il pannello le legge.
+        Ogni collegamento apre un canale. L’estensione scrive sul suo webhook/extension e legge le risposte dal suo webhook/bot.
       </p>
       <p v-if="pendingNote" class="mt-3 rounded-md bg-gray-100 px-3 py-2 text-base text-gray-900">
         {{ pendingNote }}
@@ -125,7 +125,7 @@ async function copy(value: string, label: string): Promise<void> {
           </button>
         </div>
         <p class="text-base leading-relaxed text-gray-500">
-          Il proxy inoltra i messaggi dell’estensione al webhook della routine. Il Bot manda ogni risposta su webhook/bot, con Authorization: Bearer e la chiave del proxy.
+          Dai al Bot l’indirizzo webhook/bot di questo canale. Se ricolleghi, il canale è nuovo: aggiorna quell’indirizzo. La chiave va nell’intestazione Authorization: Bearer.
         </p>
         <div class="flex gap-2">
           <UiButton variant="ghost" @click="replacing = true">Sostituisci</UiButton>

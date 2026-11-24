@@ -77,14 +77,17 @@ function normalizeChats(value: unknown): Chat[] {
 
 function normalizeProxy(value: unknown): ProxyConfig | null {
   if (!isRecord(value)) return null
-  if (typeof value.baseUrl !== 'string' || typeof value.token !== 'string') return null
+  if (typeof value.baseUrl !== 'string' || typeof value.token !== 'string' || typeof value.connectionId !== 'string') {
+    return null
+  }
   const baseUrl = value.baseUrl.trim().replace(/\/$/, '')
   const token = value.token.trim()
-  if (!baseUrl || !token) return null
+  const connectionId = value.connectionId.trim()
+  if (!baseUrl || !token || !connectionId) return null
   try {
     const url = new URL(baseUrl)
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
-    return { baseUrl: url.origin, token }
+    return { baseUrl: url.origin, token, connectionId }
   } catch {
     return null
   }
