@@ -168,12 +168,12 @@ async function copy(value: string, label: string): Promise<void> {
           </button>
         </div>
         <div>
-          <UiButton variant="ghost" @click="copy(botPrompt, 'prompt')">
-            {{ copied === 'prompt' ? 'Copied' : 'Copy bot setup prompt' }}
-          </UiButton>
-          <div class="mt-2 max-h-[300px] overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div class="max-h-[300px] overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-4">
             <p class="whitespace-pre-wrap wrap-break-word text-base leading-relaxed">{{ botPrompt }}</p>
           </div>
+          <button type="button" class="mt-2 text-base text-blue-600" @click="copy(botPrompt, 'prompt')">
+            {{ copied === 'prompt' ? 'Copied' : 'Copy' }}
+          </button>
         </div>
         <p class="text-base leading-relaxed text-gray-500">
           Paste it into the Bot to update the routine. If you reconnect, the channel is new: copy the prompt again.
