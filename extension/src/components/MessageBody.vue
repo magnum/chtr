@@ -7,5 +7,5 @@ const html = computed(() => renderMarkdown(props.source))
 </script>
 
 <template>
-  <div class="prose-chat" v-html="html" />
+  <div class="prose-chat text-base" v-html="html" />
 </template>

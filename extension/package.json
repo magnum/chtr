@@ -10,7 +10,6 @@
     "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
-    "@fontsource-variable/fraunces": "^5.2.8",
     "@heroicons/vue": "^2.2.0",
     "dompurify": "^3.3.0",
     "marked": "^16.4.1",

@@ -63,27 +63,27 @@ async function copy(value: string, label: string): Promise<void> {
     </header>
 
     <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
-      <p class="leading-relaxed text-gray-400">
+      <p class="text-base leading-relaxed text-gray-500">
         L’estensione scrive su /webhook/extension. Il Bot scrive le risposte su /webhook/bot, e da lì il pannello le legge.
       </p>
-      <p v-if="pendingNote" class="mt-3 rounded-md bg-gray-800 px-3 py-2 text-gray-100">
+      <p v-if="pendingNote" class="mt-3 rounded-md bg-gray-100 px-3 py-2 text-base text-gray-900">
         {{ pendingNote }}
       </p>
 
       <form v-if="replacing" class="mt-4 grid gap-3" @submit.prevent="submit">
         <label class="grid gap-1">
-          <span class="text-gray-400">Indirizzo del proxy</span>
+          <span class="text-base text-gray-500">Indirizzo del proxy</span>
           <input
             v-model="draft.baseUrl"
             type="url"
             placeholder="https://chtr.netlify.app"
             required
-            class="rounded-md border border-gray-700 bg-gray-950 px-3 py-2.5 outline-none placeholder:text-gray-500 focus:border-blue-500"
+            class="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base outline-none placeholder:text-gray-400 focus:border-blue-600"
           />
         </label>
         <label class="grid gap-1">
-          <span class="text-gray-400">Chiave</span>
-          <div class="flex items-center gap-2 rounded-md border border-gray-700 bg-gray-950 px-3 focus-within:border-blue-500">
+          <span class="text-base text-gray-500">Chiave</span>
+          <div class="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 focus-within:border-blue-600">
             <input
               v-model="draft.token"
               :type="revealed ? 'text' : 'password'"
@@ -93,9 +93,9 @@ async function copy(value: string, label: string): Promise<void> {
               spellcheck="false"
               maxlength="400"
               required
-              class="min-w-0 flex-1 bg-transparent py-2.5 outline-none"
+              class="min-w-0 flex-1 bg-transparent py-2.5 text-base outline-none"
             />
-            <button type="button" class="shrink-0 text-gray-400 hover:text-gray-100" @click="revealed = !revealed">
+            <button type="button" class="shrink-0 text-base text-gray-500 hover:text-gray-900" @click="revealed = !revealed">
               {{ revealed ? 'Nascondi' : 'Mostra' }}
             </button>
           </div>
@@ -109,22 +109,22 @@ async function copy(value: string, label: string): Promise<void> {
       </form>
 
       <div v-else-if="store.proxy && urls" class="mt-4 grid gap-3">
-        <p class="text-gray-400">Chiave {{ maskKey(store.proxy.token) }}</p>
-        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
-          <p class="text-gray-400">webhook/extension</p>
+        <p class="text-base text-gray-500">Chiave {{ maskKey(store.proxy.token) }}</p>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-base text-gray-500">webhook/extension</p>
           <p class="mt-1 break-all">{{ urls.extension }}</p>
-          <button type="button" class="mt-2 text-blue-400" @click="copy(urls.extension, 'extension')">
+          <button type="button" class="mt-2 text-base text-blue-600" @click="copy(urls.extension, 'extension')">
             {{ copied === 'extension' ? 'Copiato' : 'Copia' }}
           </button>
         </div>
-        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
-          <p class="text-gray-400">webhook/bot</p>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-base text-gray-500">webhook/bot</p>
           <p class="mt-1 break-all">{{ urls.bot }}</p>
-          <button type="button" class="mt-2 text-blue-400" @click="copy(urls.bot, 'bot')">
+          <button type="button" class="mt-2 text-base text-blue-600" @click="copy(urls.bot, 'bot')">
             {{ copied === 'bot' ? 'Copiato' : 'Copia' }}
           </button>
         </div>
-        <p class="leading-relaxed text-gray-400">
+        <p class="text-base leading-relaxed text-gray-500">
           Il proxy inoltra i messaggi dell’estensione al webhook della routine. Il Bot manda ogni risposta su webhook/bot, con Authorization: Bearer e la chiave del proxy.
         </p>
         <div class="flex gap-2">
@@ -133,7 +133,7 @@ async function copy(value: string, label: string): Promise<void> {
         </div>
       </div>
 
-      <p v-if="error" class="mt-3 text-red-400">{{ error }}</p>
+      <p v-if="error" class="mt-3 text-base text-red-700">{{ error }}</p>
     </div>
   </section>
 </template>

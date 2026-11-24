@@ -16,17 +16,17 @@ const emit = defineEmits<{
 
 <template>
   <div v-if="message.role === 'user'" class="flex justify-end">
-    <p class="max-w-[88%] whitespace-pre-wrap rounded-md bg-gray-800 px-3 py-2 leading-relaxed [overflow-wrap:anywhere]">
+    <p class="max-w-[88%] whitespace-pre-wrap rounded-md bg-gray-100 px-3 py-2 text-base leading-relaxed [overflow-wrap:anywhere]">
       {{ message.content }}
     </p>
   </div>
 
-  <div v-else-if="message.status === 'error'" class="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2.5">
-    <p class="leading-relaxed text-gray-100 [overflow-wrap:anywhere]">{{ message.content }}</p>
+  <div v-else-if="message.status === 'error'" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5">
+    <p class="text-base leading-relaxed text-gray-900 [overflow-wrap:anywhere]">{{ message.content }}</p>
     <button
       v-if="retryable"
       type="button"
-      class="mt-2 font-medium text-blue-400 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+      class="mt-2 text-base font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
       @click="emit('retry')"
     >
       Riprova

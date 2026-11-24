@@ -38,8 +38,8 @@ function lastPreview(chat: Chat): string {
         <div class="flex items-center gap-2">
           <ChatBubbleBottomCenterIcon class="size-6 shrink-0" />
           <div>
-            <h1>chtr</h1>
-            <p class="mt-1 text-gray-400">Grok</p>
+            <h1 class="text-base font-medium">chtr</h1>
+            <p class="mt-1 text-base text-gray-500">Grok</p>
           </div>
         </div>
         <IconButton label="Impostazioni del proxy" @click="openConnect()">
@@ -52,7 +52,7 @@ function lastPreview(chat: Chat): string {
       <UiButton class="w-full" @click="requestChat('grok', 'grok')">Nuova chat</UiButton>
     </div>
 
-    <p v-if="store.saveError" class="mx-4 mt-3 rounded-md bg-red-500/15 px-3 py-2  text-red-400">
+    <p v-if="store.saveError" class="mx-4 mt-3 rounded-md bg-red-50 px-3 py-2 text-base text-red-700">
       {{ store.saveError }}
     </p>
 
@@ -62,14 +62,14 @@ function lastPreview(chat: Chat): string {
         v-model="query"
         type="search"
         placeholder="Cerca"
-        class="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 outline-none placeholder:text-gray-500 focus:border-blue-500"
+        class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base outline-none placeholder:text-gray-400 focus:border-blue-600"
       />
     </label>
 
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-      <div v-if="!store.chats.length" class="rounded-lg border border-dashed border-gray-700 px-4 py-8 text-center">
-        <p>Nessuna chat</p>
-        <p class="mx-auto mt-3 max-w-[16rem] leading-relaxed text-gray-400">
+      <div v-if="!store.chats.length" class="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center">
+        <p class="text-base">Nessuna chat</p>
+        <p class="mx-auto mt-3 max-w-[16rem] text-base leading-relaxed text-gray-500">
           Apri una conversazione con Grok senza lasciare la pagina.
         </p>
         <UiButton v-if="!connected" class="mt-4" variant="ghost" @click="openConnect()">
@@ -77,7 +77,7 @@ function lastPreview(chat: Chat): string {
         </UiButton>
       </div>
 
-      <p v-else-if="!visible.length" class="px-1 py-6 text-center text-gray-400">
+      <p v-else-if="!visible.length" class="px-1 py-6 text-center text-base text-gray-500">
         Nessuna chat corrisponde.
       </p>
 
@@ -85,7 +85,7 @@ function lastPreview(chat: Chat): string {
         <li v-for="chat in visible" :key="chat.id">
           <button
             type="button"
-            class="flex w-full items-start gap-3 rounded-md border border-gray-700 bg-gray-900 px-3 py-3 text-left hover:border-blue-500/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            class="flex w-full items-start gap-3 rounded-md border border-gray-200 bg-white px-3 py-3 text-left text-base hover:border-blue-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             @click="openChat(chat.id)"
           >
             <span
@@ -97,9 +97,9 @@ function lastPreview(chat: Chat): string {
             <span class="min-w-0 flex-1">
               <span class="flex items-baseline justify-between gap-2">
                 <span class="truncate font-medium">{{ chat.title }}</span>
-                <span class="shrink-0 text-gray-500">{{ formatWhen(chat.updatedAt) }}</span>
+                <span class="shrink-0 text-base text-gray-500">{{ formatWhen(chat.updatedAt) }}</span>
               </span>
-              <span class="mt-0.5 block truncate  text-gray-400">
+              <span class="mt-0.5 block truncate text-base text-gray-500">
                 {{ lastPreview(chat) || 'Nessun messaggio' }}
               </span>
             </span>
@@ -108,7 +108,7 @@ function lastPreview(chat: Chat): string {
       </ul>
     </div>
 
-    <footer class="shrink-0 px-4 pb-3 text-center text-gray-500">
+    <footer class="shrink-0 px-4 pb-3 text-center text-base text-gray-500">
       {{ shortcut }} apre e chiude il pannello
     </footer>
 
