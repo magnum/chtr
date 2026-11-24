@@ -18,5 +18,10 @@ export default function webhook(request) {
 }
 
 export const config = {
-  path: ['/webhook/connect', '/webhook/extension/:connectionId', '/webhook/bot/:connectionId'],
+  path: [
+    '/webhook/connect',
+    '/webhook/extension/:connectionId',
+    '/webhook/bot/:connectionId',
+    '/webhook/bot/:connectionId/mcp',
+  ],
 }

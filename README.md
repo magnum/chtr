@@ -24,6 +24,8 @@ Nel pannello imposta l’indirizzo del sito Netlify e la chiave del proxy. Al co
 
 Un nuovo collegamento apre un canale nuovo. In quel caso dai al Bot il nuovo `webhook/bot`.
 
+`webhook/bot/<connection_id>/mcp` è un server MCP. Lo strumento `run_javascript` esegue JavaScript sul proxy: il risultato è il valore di `return`. Non ha rete, file né variabili d’ambiente. La chiave va nell’intestazione `Authorization: Bearer`.
+
 La chiave va nell’intestazione `Authorization: Bearer`.
 
 ## Proxy

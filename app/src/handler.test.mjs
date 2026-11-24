@@ -82,6 +82,57 @@ test('i messaggi del Bot non si mescolano con quelli dell’estensione', async (
   assert.deepEqual((await incoming.json()).messages, [])
 })
 
+function mcpCall(method, params, id = 1) {
+  return handle(
+    new Request(`https://proxy.test/webhook/bot/${CHANNEL}/mcp`, {
+      method: 'POST',
+      headers: { ...auth, 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
+    }),
+    memory(),
+    env,
+  )
+}
+
+test('mcp elenca run_javascript ed esegue il return', async () => {
+  const listed = await mcpCall('tools/list')
+  assert.equal(listed.status, 200)
+  const tools = (await listed.json()).result.tools
+  assert.equal(tools[0].name, 'run_javascript')
+
+  const called = await mcpCall('tools/call', {
+    name: 'run_javascript',
+    arguments: { code: 'return 1 + 2' },
+  })
+  const body = await called.json()
+  assert.equal(body.result.isError, undefined)
+  assert.equal(body.result.content[0].text, '3')
+})
+
+test('mcp non vede process e rifiuta una chiave diversa', async () => {
+  const called = await mcpCall('tools/call', {
+    name: 'run_javascript',
+    arguments: { code: 'return typeof process' },
+  })
+  assert.equal((await called.json()).result.content[0].text, 'undefined')
+
+  const denied = await handle(
+    new Request(`https://proxy.test/webhook/bot/${CHANNEL}/mcp`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'run_javascript', arguments: { code: 'return 1' } },
+      }),
+    }),
+    memory(),
+    env,
+  )
+  assert.equal(denied.status, 401)
+})
+
 test('due canali non condividono i messaggi', async () => {
   const store = memory()
   await handle(

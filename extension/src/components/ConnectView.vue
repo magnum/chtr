@@ -124,8 +124,15 @@ async function copy(value: string, label: string): Promise<void> {
             {{ copied === 'bot' ? 'Copiato' : 'Copia' }}
           </button>
         </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-base text-gray-500">webhook/bot/mcp</p>
+          <p class="mt-1 break-all">{{ urls.mcp }}</p>
+          <button type="button" class="mt-2 text-base text-blue-600" @click="copy(urls.mcp, 'mcp')">
+            {{ copied === 'mcp' ? 'Copiato' : 'Copia' }}
+          </button>
+        </div>
         <p class="text-base leading-relaxed text-gray-500">
-          Dai al Bot l’indirizzo webhook/bot di questo canale. Se ricolleghi, il canale è nuovo: aggiorna quell’indirizzo. La chiave va nell’intestazione Authorization: Bearer.
+          Dai al Bot gli indirizzi webhook/bot e mcp di questo canale. Se ricolleghi, il canale è nuovo: aggiorna quegli indirizzi. La chiave va nell’intestazione Authorization: Bearer.
         </p>
         <div class="flex gap-2">
           <UiButton variant="ghost" @click="replacing = true">Sostituisci</UiButton>

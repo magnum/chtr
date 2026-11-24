@@ -1,3 +1,4 @@
+import { handleMcp } from './mcp.mjs'
 import { since, push } from './queue.mjs'
 
 const CORS = {
@@ -29,6 +30,15 @@ const CONNECTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 function routeOf(url) {
   const parts = url.pathname.split('/').filter(Boolean)
   if (parts.length === 2 && parts[0] === 'webhook' && parts[1] === 'connect') return { kind: 'connect' }
+  if (
+    parts.length === 4 &&
+    parts[0] === 'webhook' &&
+    parts[1] === 'bot' &&
+    parts[3] === 'mcp' &&
+    CONNECTION_ID.test(parts[2])
+  ) {
+    return { kind: 'mcp', connectionId: parts[2].toLowerCase() }
+  }
   if (parts.length === 3 && parts[0] === 'webhook' && (parts[1] === 'extension' || parts[1] === 'bot')) {
     if (!CONNECTION_ID.test(parts[2])) return { kind: 'unknown' }
     return { kind: 'queue', side: parts[1], connectionId: parts[2].toLowerCase() }
@@ -73,6 +83,19 @@ export async function handle(request, store, env) {
   if (route.kind === 'connect') {
     if (request.method !== 'POST') return json({ error: 'Metodo non permesso.' }, 405)
     return json({ connectionId: crypto.randomUUID() })
+  }
+
+  if (route.kind === 'mcp') {
+    if (request.method !== 'POST') return json({ error: 'Metodo non permesso.' }, 405)
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'JSON non valido.' } }, 400)
+    }
+    const result = await handleMcp(body)
+    if (result === null) return new Response(null, { status: 202, headers: CORS })
+    return json(result)
   }
 
   const bucket = `${route.connectionId}:${route.side}`

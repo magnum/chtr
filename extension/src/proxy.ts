@@ -97,9 +97,10 @@ export async function readBot(proxy: ProxyConfig, after: string): Promise<ProxyM
   })
 }
 
-export function webhookUrls(proxy: ProxyConfig): { extension: string; bot: string } {
+export function webhookUrls(proxy: ProxyConfig): { extension: string; bot: string; mcp: string } {
   return {
     extension: `${proxy.baseUrl}/webhook/extension/${proxy.connectionId}`,
     bot: `${proxy.baseUrl}/webhook/bot/${proxy.connectionId}`,
+    mcp: `${proxy.baseUrl}/webhook/bot/${proxy.connectionId}/mcp`,
   }
 }
