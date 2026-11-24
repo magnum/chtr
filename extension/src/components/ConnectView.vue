@@ -16,6 +16,29 @@ const copied = ref('')
 
 const urls = computed(() => (store.proxy ? webhookUrls(store.proxy) : null))
 const pendingNote = computed(() => (store.pending ? 'Dopo il collegamento si apre la nuova chat.' : ''))
+const botPrompt = computed(() => {
+  const proxy = store.proxy
+  const current = urls.value
+  if (!proxy || !current) return ''
+  return [
+    'Aggiorna la routine webhook di questo canale chtr. Se ne esiste già una, modificala: non crearne un’altra.',
+    '',
+    'Quando arriva il webhook, il JSON ha message, chatId, connectionId e replyUrl.',
+    'Rispondi a message in questa chat, come se te lo avessi scritto qui.',
+    `Poi fai una POST a replyUrl, che per questo canale è ${current.bot}.`,
+    `Intestazioni: Authorization: Bearer ${proxy.token} e Content-Type: application/json.`,
+    'Corpo: {"message":"<la stessa risposta>","chatId":"<il chatId ricevuto, copiato così com’è>"}.',
+    'Non chiamare webhook/extension: i messaggi ti arrivano da questa routine.',
+    '',
+    `Per eseguire JavaScript fai una POST a ${current.mcp} con la stessa Authorization.`,
+    'È JSON-RPC. Lo strumento è run_javascript, il codice va in arguments.code e il risultato è il valore di return.',
+    'Esempio: {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"run_javascript","arguments":{"code":"return 1 + 2"}}}.',
+    'Il codice gira sul proxy: niente rete, file o variabili d’ambiente, e si ferma dopo un secondo.',
+    '',
+    `Autorizza in automatico solo le POST verso ${current.bot} e ${current.mcp}.`,
+    'Mostrami la scheda aggiornata della routine.',
+  ].join('\n')
+})
 
 async function submit(): Promise<void> {
   error.value = ''
@@ -131,8 +154,15 @@ async function copy(value: string, label: string): Promise<void> {
             {{ copied === 'mcp' ? 'Copiato' : 'Copia' }}
           </button>
         </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-base text-gray-500">Prompt per il Bot</p>
+          <p class="mt-2 whitespace-pre-wrap wrap-break-word text-base leading-relaxed">{{ botPrompt }}</p>
+          <button type="button" class="mt-2 text-base text-blue-600" @click="copy(botPrompt, 'prompt')">
+            {{ copied === 'prompt' ? 'Copiato' : 'Copia' }}
+          </button>
+        </div>
         <p class="text-base leading-relaxed text-gray-500">
-          Dai al Bot gli indirizzi webhook/bot e mcp di questo canale. Se ricolleghi, il canale è nuovo: aggiorna quegli indirizzi. La chiave va nell’intestazione Authorization: Bearer.
+          Incollalo nel Bot per aggiornare la routine. Se ricolleghi, il canale è nuovo: copia di nuovo il prompt.
         </p>
         <div class="flex gap-2">
           <UiButton variant="ghost" @click="replacing = true">Sostituisci</UiButton>
