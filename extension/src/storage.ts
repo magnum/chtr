@@ -54,7 +54,7 @@ function normalizeChat(value: unknown): Chat | null {
     id: value.id,
     provider: value.provider,
     model: value.model,
-    title: title || 'Nuova chat',
+    title: title || 'New chat',
     renamed: value.renamed === true,
     messages,
     createdAt: typeof value.createdAt === 'number' ? value.createdAt : now,

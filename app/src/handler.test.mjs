@@ -82,39 +82,64 @@ test('i messaggi del Bot non si mescolano con quelli dell’estensione', async (
   assert.deepEqual((await incoming.json()).messages, [])
 })
 
-function mcpCall(method, params, id = 1) {
-  return handle(
-    new Request(`https://proxy.test/webhook/bot/${CHANNEL}/mcp`, {
-      method: 'POST',
-      headers: { ...auth, 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
-    }),
-    memory(),
-    env,
-  )
+function mcpRequest(method, params, id = 1) {
+  return new Request(`https://proxy.test/webhook/bot/${CHANNEL}/mcp`, {
+    method: 'POST',
+    headers: { ...auth, 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
+  })
 }
 
-test('mcp elenca run_javascript ed esegue il return', async () => {
-  const listed = await mcpCall('tools/list')
+test('mcp elenca run_javascript e restituisce il risultato della finestra', async () => {
+  const store = memory()
+  const listed = await handle(mcpRequest('tools/list'), store, env)
   assert.equal(listed.status, 200)
   const tools = (await listed.json()).result.tools
   assert.equal(tools[0].name, 'run_javascript')
+  assert.match(tools[0].description, /current browser window/)
 
-  const called = await mcpCall('tools/call', {
-    name: 'run_javascript',
-    arguments: { code: 'return 1 + 2' },
-  })
-  const body = await called.json()
+  const pending = handle(
+    mcpRequest('tools/call', {
+      name: 'run_javascript',
+      arguments: { code: 'return document.title' },
+    }),
+    store,
+    { ...env, COMMAND_WAIT_MS: '3000' },
+  )
+  let command = null
+  for (let i = 0; i < 20 && !command; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const response = await handle(new Request(`https://proxy.test/webhook/bot/${CHANNEL}/command`, { headers: auth }), store, env)
+    command = (await response.json()).command
+  }
+  assert.equal(command.code, 'return document.title')
+  const done = await handle(
+    new Request(`https://proxy.test/webhook/bot/${CHANNEL}/command`, {
+      method: 'POST',
+      headers: { ...auth, 'content-type': 'application/json' },
+      body: JSON.stringify({ id: command.id, result: 'Todo Basecamp' }),
+    }),
+    store,
+    env,
+  )
+  assert.equal(done.status, 200)
+  const body = await (await pending).json()
   assert.equal(body.result.isError, undefined)
-  assert.equal(body.result.content[0].text, '3')
+  assert.equal(body.result.content[0].text, 'Todo Basecamp')
 })
 
-test('mcp non vede process e rifiuta una chiave diversa', async () => {
-  const called = await mcpCall('tools/call', {
-    name: 'run_javascript',
-    arguments: { code: 'return typeof process' },
-  })
-  assert.equal((await called.json()).result.content[0].text, 'undefined')
+test('mcp segnala la finestra assente e rifiuta una chiave diversa', async () => {
+  const called = await handle(
+    mcpRequest('tools/call', {
+      name: 'run_javascript',
+      arguments: { code: 'return document.body.innerText' },
+    }),
+    memory(),
+    { ...env, COMMAND_WAIT_MS: '400' },
+  )
+  const body = await called.json()
+  assert.equal(body.result.isError, true)
+  assert.match(body.result.content[0].text, /did not respond/)
 
   const denied = await handle(
     new Request(`https://proxy.test/webhook/bot/${CHANNEL}/mcp`, {
@@ -131,6 +156,39 @@ test('mcp non vede process e rifiuta una chiave diversa', async () => {
     env,
   )
   assert.equal(denied.status, 401)
+})
+
+test('inoltra al Bot il suggerimento per leggere la finestra', async () => {
+  const calls = []
+  const original = globalThis.fetch
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url, body: init.body })
+    return new Response('', { status: 200 })
+  }
+  try {
+    const response = await handle(
+      new Request(channel('extension'), {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message: 'riassumi il todo',
+          chatId: 'chat-1',
+          page: { url: 'https://basecamp.example/todo', title: 'Todo' },
+        }),
+      }),
+      memory(),
+      { ...env, BOT_WEBHOOK_URL: 'https://bot.test/hook', BOT_WEBHOOK_KEY: 'chiave-routine' },
+    )
+    assert.equal(response.status, 200)
+  } finally {
+    globalThis.fetch = original
+  }
+  const body = JSON.parse(calls[0].body)
+  assert.equal(body.page.url, 'https://basecamp.example/todo')
+  assert.equal(body.page.title, 'Todo')
+  assert.match(body.mcpUrl, /\/mcp$/)
+  assert.equal(body.hint, 'mcpUrl runs JavaScript in the open browser window with the run_javascript tool.')
+  assert.match(body.replyUrl, /\/webhook\/bot\//)
 })
 
 test('due canali non condividono i messaggi', async () => {

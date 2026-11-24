@@ -30,14 +30,9 @@ const CONNECTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 function routeOf(url) {
   const parts = url.pathname.split('/').filter(Boolean)
   if (parts.length === 2 && parts[0] === 'webhook' && parts[1] === 'connect') return { kind: 'connect' }
-  if (
-    parts.length === 4 &&
-    parts[0] === 'webhook' &&
-    parts[1] === 'bot' &&
-    parts[3] === 'mcp' &&
-    CONNECTION_ID.test(parts[2])
-  ) {
-    return { kind: 'mcp', connectionId: parts[2].toLowerCase() }
+  if (parts.length === 4 && parts[0] === 'webhook' && parts[1] === 'bot' && CONNECTION_ID.test(parts[2])) {
+    if (parts[3] === 'mcp') return { kind: 'mcp', connectionId: parts[2].toLowerCase() }
+    if (parts[3] === 'command') return { kind: 'command', connectionId: parts[2].toLowerCase() }
   }
   if (parts.length === 3 && parts[0] === 'webhook' && (parts[1] === 'extension' || parts[1] === 'bot')) {
     if (!CONNECTION_ID.test(parts[2])) return { kind: 'unknown' }
@@ -53,20 +48,33 @@ function textOf(body) {
   return ''
 }
 
-async function forwardIn(env, item, connectionId, origin) {
+function pageOf(body) {
+  const page = body?.page
+  if (!page || typeof page !== 'object') return null
+  const url = typeof page.url === 'string' ? page.url : ''
+  const title = typeof page.title === 'string' ? page.title : ''
+  if (!url && !title) return null
+  return { url, title }
+}
+
+async function forwardIn(env, item, connectionId, origin, page) {
   const target = env.BOT_WEBHOOK_URL ?? ''
   if (!target) return false
   const headers = new Headers({ 'content-type': 'application/json' })
   if (env.BOT_WEBHOOK_KEY) headers.set('authorization', `Bearer ${env.BOT_WEBHOOK_KEY}`)
+  const payload = {
+    message: item.message,
+    chatId: item.chatId,
+    connectionId,
+    replyUrl: `${origin}/webhook/bot/${connectionId}`,
+    mcpUrl: `${origin}/webhook/bot/${connectionId}/mcp`,
+    hint: 'mcpUrl runs JavaScript in the open browser window with the run_javascript tool.',
+  }
+  if (page) payload.page = page
   const response = await fetch(target, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      message: item.message,
-      chatId: item.chatId,
-      connectionId,
-      replyUrl: `${origin}/webhook/bot/${connectionId}`,
-    }),
+    body: JSON.stringify(payload),
   })
   return response.ok
 }
@@ -76,26 +84,53 @@ export async function handle(request, store, env) {
 
   const url = new URL(request.url)
   const route = routeOf(url)
-  if (route.kind === 'unknown') return json({ error: 'Percorso sconosciuto.' }, 404)
-  if (!env.PROXY_TOKEN) return json({ error: 'PROXY_TOKEN non configurato.' }, 500)
-  if (!authorized(request, env)) return json({ error: 'Non autorizzato.' }, 401)
+  if (route.kind === 'unknown') return json({ error: 'Unknown path.' }, 404)
+  if (!env.PROXY_TOKEN) return json({ error: 'PROXY_TOKEN is not configured.' }, 500)
+  if (!authorized(request, env)) return json({ error: 'Unauthorized.' }, 401)
 
   if (route.kind === 'connect') {
-    if (request.method !== 'POST') return json({ error: 'Metodo non permesso.' }, 405)
+    if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405)
     return json({ connectionId: crypto.randomUUID() })
   }
 
   if (route.kind === 'mcp') {
-    if (request.method !== 'POST') return json({ error: 'Metodo non permesso.' }, 405)
+    if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405)
     let body
     try {
       body = await request.json()
     } catch {
-      return json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'JSON non valido.' } }, 400)
+      return json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Invalid JSON.' } }, 400)
     }
-    const result = await handleMcp(body)
+    const waitMs = Number(env.COMMAND_WAIT_MS) || 12_000
+    const result = await handleMcp(body, store, route.connectionId, waitMs)
     if (result === null) return new Response(null, { status: 202, headers: CORS })
     return json(result)
+  }
+
+  if (route.kind === 'command') {
+    const key = `${route.connectionId}:command`
+    if (request.method === 'GET') {
+      const current = await store.getJSON(key)
+      if (!current || current.status !== 'pending') return json({ command: null })
+      return json({ command: { id: current.id, code: current.code } })
+    }
+    if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405)
+    let commandBody
+    try {
+      commandBody = await request.json()
+    } catch {
+      return json({ error: 'Invalid JSON.' }, 400)
+    }
+    if (!commandBody || typeof commandBody.id !== 'string') return json({ error: 'Missing command.' }, 400)
+    const current = await store.getJSON(key)
+    if (!current || current.id !== commandBody.id || current.status !== 'pending') {
+      return json({ error: 'Comando non in corso.' }, 409)
+    }
+    const error = typeof commandBody.error === 'string' ? commandBody.error : ''
+    const result = typeof commandBody.result === 'string' ? commandBody.result : ''
+    if (!error && typeof commandBody.result !== 'string') return json({ error: 'Missing result.' }, 400)
+    await store.setJSON(key, { ...current, status: 'done', result, error })
+    return json({ ok: true })
   }
 
   const bucket = `${route.connectionId}:${route.side}`
@@ -104,17 +139,17 @@ export async function handle(request, store, env) {
     return json({ messages: since(list, url.searchParams.get('after') ?? '') })
   }
 
-  if (request.method !== 'POST') return json({ error: 'Metodo non permesso.' }, 405)
+  if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405)
 
   let body
   try {
     body = await request.json()
   } catch {
-    return json({ error: 'JSON non valido.' }, 400)
+    return json({ error: 'Invalid JSON.' }, 400)
   }
 
   const message = textOf(body)
-  if (!message) return json({ error: 'Manca il messaggio.' }, 400)
+  if (!message) return json({ error: 'Missing message.' }, 400)
 
   const item = {
     id: crypto.randomUUID(),
@@ -127,7 +162,7 @@ export async function handle(request, store, env) {
   if (route.side !== 'extension') return json({ ok: true, id: item.id })
 
   try {
-    const forwarded = await forwardIn(env, item, route.connectionId, url.origin)
+    const forwarded = await forwardIn(env, item, route.connectionId, url.origin, pageOf(body))
     return json({ ok: true, id: item.id, forwarded })
   } catch {
     return json({ ok: true, id: item.id, forwarded: false })

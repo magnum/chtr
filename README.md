@@ -1,11 +1,11 @@
 # chtr
 
-Due cartelle.
+Two folders.
 
-- `extension` è il pannello laterale di Chrome.
-- `app` è il proxy da pubblicare su Netlify. Tiene i messaggi fra il pannello e un Grok Bot.
+- `extension` is the Chrome side panel.
+- `app` is the proxy to publish on Netlify. It holds messages between the panel and a Grok Bot.
 
-## Estensione
+## Extension
 
 ```bash
 cd extension
@@ -13,20 +13,18 @@ npm install
 npm run dev
 ```
 
-In Chrome, Edge o Brave: `chrome://extensions`, modalità sviluppatore, carica la cartella `extension/dist`. Lascia `npm run dev` acceso.
+In Chrome, Edge, or Brave: `chrome://extensions`, developer mode, load the `extension/dist` folder. Leave `npm run dev` running.
 
-Scorciatoia suggerita: `⌘⇧Y` su Mac, `Ctrl+Shift+Y` altrove.
+Suggested shortcut: `⌘⇧Y` on Mac, `Ctrl+Shift+Y` elsewhere.
 
-Nel pannello imposta l’indirizzo del sito Netlify e la chiave del proxy. Al collegamento il proxy assegna un `connection_id` e il pannello lo salva. Ti mostra due URL di quel canale:
+In the panel, set the Netlify site address and the proxy key. On connect, the proxy assigns a `connection_id` and the panel saves it. It shows the channel URLs:
 
-- `webhook/extension/<connection_id>`, dove il pannello scrive
-- `webhook/bot/<connection_id>`, dove il Bot scrive le risposte e da dove il pannello le legge
+- `webhook/extension/<connection_id>`, where the panel writes
+- `webhook/bot/<connection_id>`, where the Bot writes replies and the panel reads them
 
-Un nuovo collegamento apre un canale nuovo. In quel caso dai al Bot il nuovo `webhook/bot`.
+A new connection opens a new channel. In that case, give the Bot the new `webhook/bot`.
 
-`webhook/bot/<connection_id>/mcp` è un server MCP. Lo strumento `run_javascript` esegue JavaScript sul proxy: il risultato è il valore di `return`. Non ha rete, file né variabili d’ambiente. La chiave va nell’intestazione `Authorization: Bearer`.
-
-La chiave va nell’intestazione `Authorization: Bearer`.
+`webhook/bot/<connection_id>/mcp` is an MCP server. The `run_javascript` tool runs JavaScript in the open browser window: the result is the value of `return`. The panel must stay open on that page. The key goes in the `Authorization: Bearer` header.
 
 ## Proxy
 
@@ -35,4 +33,4 @@ cd app
 npm install
 ```
 
-Su Netlify la cartella di pubblicazione è `app`. Genera la chiave con `npm run token` e impostala come variabile `PROXY_TOKEN`. Se vuoi che un messaggio dell’estensione venga anche inoltrato al webhook della routine del Bot, aggiungi `BOT_WEBHOOK_URL` e, se serve, `BOT_WEBHOOK_KEY`.
+On Netlify the base directory is `app`. Generate the key with `npm run token` and set it as the `PROXY_TOKEN` variable. To also forward an extension message to the Bot routine webhook, add `BOT_WEBHOOK_URL` and, if needed, `BOT_WEBHOOK_KEY`.

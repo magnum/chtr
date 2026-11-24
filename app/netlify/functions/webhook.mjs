@@ -23,5 +23,6 @@ export const config = {
     '/webhook/extension/:connectionId',
     '/webhook/bot/:connectionId',
     '/webhook/bot/:connectionId/mcp',
+    '/webhook/bot/:connectionId/command',
   ],
 }

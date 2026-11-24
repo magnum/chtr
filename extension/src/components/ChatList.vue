@@ -42,14 +42,14 @@ function lastPreview(chat: Chat): string {
             <p class="mt-1 text-base text-gray-500">Grok</p>
           </div>
         </div>
-        <IconButton label="Impostazioni del proxy" @click="openConnect()">
+        <IconButton label="Proxy settings" @click="openConnect()">
           <UserIcon class="size-5" />
         </IconButton>
       </div>
     </header>
 
     <div class="shrink-0 px-4">
-      <UiButton class="w-full" @click="requestChat('grok', 'grok')">Nuova chat</UiButton>
+      <UiButton class="w-full" @click="requestChat('grok', 'grok')">New chat</UiButton>
     </div>
 
     <p v-if="store.saveError" class="mx-4 mt-3 rounded-md bg-red-50 px-3 py-2 text-base text-red-700">
@@ -57,28 +57,28 @@ function lastPreview(chat: Chat): string {
     </p>
 
     <label v-if="store.chats.length > 3" class="mx-4 mt-3 block shrink-0">
-      <span class="sr-only">Cerca nelle chat</span>
+      <span class="sr-only">Search chats</span>
       <input
         v-model="query"
         type="search"
-        placeholder="Cerca"
+        placeholder="Search"
         class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base outline-none placeholder:text-gray-400 focus:border-blue-600"
       />
     </label>
 
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
       <div v-if="!store.chats.length" class="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center">
-        <p class="text-base">Nessuna chat</p>
+        <p class="text-base">No chats</p>
         <p class="mx-auto mt-3 max-w-[16rem] text-base leading-relaxed text-gray-500">
-          Apri una conversazione con Grok senza lasciare la pagina.
+          Start a conversation with Grok without leaving the page.
         </p>
         <UiButton v-if="!connected" class="mt-4" variant="ghost" @click="openConnect()">
-          Collega Grok
+          Connect Grok
         </UiButton>
       </div>
 
       <p v-else-if="!visible.length" class="px-1 py-6 text-center text-base text-gray-500">
-        Nessuna chat corrisponde.
+        No matching chats.
       </p>
 
       <ul v-else class="flex flex-col gap-2">
@@ -100,7 +100,7 @@ function lastPreview(chat: Chat): string {
                 <span class="shrink-0 text-base text-gray-500">{{ formatWhen(chat.updatedAt) }}</span>
               </span>
               <span class="mt-0.5 block truncate text-base text-gray-500">
-                {{ lastPreview(chat) || 'Nessun messaggio' }}
+                {{ lastPreview(chat) || 'No messages' }}
               </span>
             </span>
           </button>
@@ -109,7 +109,7 @@ function lastPreview(chat: Chat): string {
     </div>
 
     <footer class="shrink-0 px-4 pb-3 text-center text-base text-gray-500">
-      {{ shortcut }} apre e chiude il pannello
+      {{ shortcut }} opens and closes the panel
     </footer>
 
   </section>

@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 import { titleFromMessage } from '@/format'
-import { openChannel, postExtension, readBot } from '@/proxy'
+import { allowActiveTab, runInActiveTab } from '@/page'
+import { finishCommand, openChannel, postExtension, readBot, readCommand } from '@/proxy'
 import { loadState, saveState } from '@/storage'
 import type { Chat, ChatMessage, PendingChat, ProviderId, ProxyConfig, View } from '@/types'
 
@@ -57,7 +58,7 @@ export function persist(): Promise<void> {
       store.saveError = ''
     })
     .catch(() => {
-      store.saveError = 'Non riesco a salvare le chat su questo browser.'
+      store.saveError = 'Can’t save chats in this browser.'
     })
   return saveQueue
 }
@@ -70,8 +71,11 @@ function scheduleSave(): void {
 }
 
 let pollTimer = 0
+let commandTimer = 0
 let polling = false
+let commanding = false
 let lastBotId = ''
+const finishedCommands = new Set<string>()
 const waiting = new Map<string, number>()
 
 function typingId(chatId: string): string {
@@ -150,13 +154,38 @@ async function pullReplies(): Promise<void> {
   }
 }
 
+async function pullCommand(): Promise<void> {
+  if (!store.proxy || commanding) return
+  commanding = true
+  try {
+    const command = await readCommand(store.proxy)
+    if (!command || finishedCommands.has(command.id)) return
+    finishedCommands.add(command.id)
+    try {
+      const result = await runInActiveTab(command.code)
+      await finishCommand(store.proxy, command.id, { result })
+    } catch (error) {
+      await finishCommand(store.proxy, command.id, {
+        error: error instanceof Error ? error.message : 'Could not run it.',
+      })
+    }
+  } finally {
+    commanding = false
+  }
+}
+
 function startPolling(): void {
   window.clearInterval(pollTimer)
+  window.clearInterval(commandTimer)
   if (!store.proxy) return
   pollTimer = window.setInterval(() => {
     void pullReplies()
   }, 3000)
+  commandTimer = window.setInterval(() => {
+    void pullCommand()
+  }, 1000)
   void pullReplies()
+  void pullCommand()
 }
 
 export async function initStore(): Promise<void> {
@@ -172,7 +201,7 @@ export async function initStore(): Promise<void> {
     store.proxy = state.proxy
     startPolling()
   } catch (error) {
-    store.bootError = error instanceof Error ? error.message : 'Impossibile leggere le chat salvate.'
+    store.bootError = error instanceof Error ? error.message : 'Could not read the saved chats.'
   } finally {
     store.ready = true
   }
@@ -206,7 +235,7 @@ export function createChat(provider: ProviderId, model: string): void {
     id: crypto.randomUUID(),
     provider,
     model,
-    title: 'Nuova chat',
+    title: 'New chat',
     renamed: false,
     messages: [],
     createdAt: now,
@@ -244,13 +273,14 @@ export async function disconnectProxy(): Promise<void> {
   store.pending = null
   lastBotId = ''
   window.clearInterval(pollTimer)
+  window.clearInterval(commandTimer)
   await persist()
 }
 
 export function renameChat(id: string, title: string): void {
   const chat = findChat(id)
   if (!chat) return
-  const next = title.trim() || 'Nuova chat'
+  const next = title.trim() || 'New chat'
   if (next === chat.title) return
   chat.title = next
   chat.renamed = true
@@ -264,13 +294,18 @@ async function deliver(chat: Chat, content: string): Promise<void> {
     return
   }
   try {
+    try {
+      await allowActiveTab()
+    } catch {
+      // The message still sends. The permission can be granted on the next try.
+    }
     await postExtension(proxy, content, chat.id)
   } catch (error) {
     endWait(chat)
     chat.messages.push({
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: error instanceof Error ? error.message : 'Il messaggio non è partito.',
+      content: error instanceof Error ? error.message : 'The message did not send.',
       createdAt: Date.now(),
       status: 'error',
     })

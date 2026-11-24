@@ -23,7 +23,7 @@ export const providers: Record<ProviderId, ProviderInfo> = {
     id: 'grok',
     label: 'Grok',
     vendor: 'xAI',
-    blurb: 'Messaggi attraverso il proxy.',
+    blurb: 'Messages through the proxy.',
     keyUrl: 'https://docs.netlify.com/',
     keyHint: 'https://….netlify.app',
     defaultModel: 'grok-4.7',

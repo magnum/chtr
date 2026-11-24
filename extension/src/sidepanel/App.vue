@@ -12,7 +12,7 @@ onMounted(() => {
 
 <template>
   <div class="flex h-dvh flex-col bg-white font-sans text-base text-gray-900">
-    <p v-if="!store.ready" class="m-auto text-gray-500">Apro le chat…</p>
+    <p v-if="!store.ready" class="m-auto text-gray-500">Opening chats…</p>
     <p v-else-if="store.bootError" class="m-auto max-w-xs px-6 text-center text-gray-500">
       {{ store.bootError }}
     </p>

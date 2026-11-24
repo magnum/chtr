@@ -1,20 +1,18 @@
-import vm from 'node:vm'
-
 const VERSIONS = new Set(['2024-11-05', '2025-03-26', '2025-06-18'])
 const LIMIT = 20_000
-const TIMEOUT_MS = 1000
+const DEFAULT_WAIT_MS = 12_000
 
 const TOOLS = [
   {
     name: 'run_javascript',
     description:
-      'Esegue JavaScript sul proxy e restituisce il valore di return. Non ha rete, file né variabili d’ambiente.',
+      'Runs JavaScript in the current browser window and returns the value of return. You can read and change that page DOM, for example document.body.innerText.',
     inputSchema: {
       type: 'object',
       properties: {
         code: {
           type: 'string',
-          description: 'Codice JavaScript. Il risultato è il valore di return.',
+          description: 'JavaScript run in the open page. The result is the return value.',
         },
       },
       required: ['code'],
@@ -30,67 +28,52 @@ function rpcError(id, code, message) {
   return { jsonrpc: '2.0', id, error: { code, message } }
 }
 
-function present(value) {
-  if (typeof value === 'undefined') return 'undefined'
-  if (typeof value === 'string') return value
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return String(value)
-  }
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export async function runJavaScript(code) {
-  if (typeof code !== 'string' || !code.trim()) throw new Error('Manca il codice.')
-  if (code.length > LIMIT) throw new Error('Codice troppo lungo.')
-  const sandbox = vm.createContext({
-    Math,
-    JSON,
-    Date,
-    Number,
-    String,
-    Boolean,
-    Array,
-    Object,
-    RegExp,
-    parseInt,
-    parseFloat,
-    isNaN,
-    isFinite,
-  })
-  const script = new vm.Script(`"use strict"; (async () => {\n${code}\n})()`, { filename: 'chtr.js' })
-  let timer
-  try {
-    return present(
-      await Promise.race([
-        Promise.resolve(script.runInContext(sandbox, { timeout: TIMEOUT_MS })),
-        new Promise((_, reject) => {
-          timer = setTimeout(() => reject(new Error('Tempo scaduto.')), TIMEOUT_MS)
-        }),
-      ]),
-    )
-  } finally {
-    clearTimeout(timer)
-  }
+function commandKey(connectionId) {
+  return `${connectionId}:command`
 }
 
-async function callTool(params) {
+export async function waitForPage(store, connectionId, code, waitMs) {
+  if (typeof code !== 'string' || !code.trim()) throw new Error('Missing code.')
+  if (code.length > LIMIT) throw new Error('Code is too long.')
+  const id = crypto.randomUUID()
+  const key = commandKey(connectionId)
+  await store.setJSON(key, { id, code, status: 'pending' })
+  const started = Date.now()
+  while (Date.now() - started < waitMs) {
+    await sleep(250)
+    const current = await store.getJSON(key)
+    if (!current || current.id !== id || current.status !== 'done') continue
+    if (current.error) throw new Error(current.error)
+    return typeof current.result === 'string' ? current.result : ''
+  }
+  const current = await store.getJSON(key)
+  if (current?.id === id && current.status === 'pending') {
+    await store.setJSON(key, { ...current, status: 'expired' })
+  }
+  throw new Error('The window did not respond. Keep the panel open on the page.')
+}
+
+async function callTool(params, store, connectionId, waitMs) {
   const name = params?.name
   if (name !== 'run_javascript') {
-    return { content: [{ type: 'text', text: 'Strumento sconosciuto.' }], isError: true }
+    return { content: [{ type: 'text', text: 'Unknown tool.' }], isError: true }
   }
   try {
-    const text = await runJavaScript(params?.arguments?.code)
+    const text = await waitForPage(store, connectionId, params?.arguments?.code, waitMs)
     return { content: [{ type: 'text', text }] }
   } catch (error) {
-    const text = error instanceof Error ? error.message : 'Esecuzione non riuscita.'
+    const text = error instanceof Error ? error.message : 'Could not run it.'
     return { content: [{ type: 'text', text }], isError: true }
   }
 }
 
-export async function handleMcp(body) {
+export async function handleMcp(body, store, connectionId, waitMs = DEFAULT_WAIT_MS) {
   if (!body || typeof body !== 'object' || body.jsonrpc !== '2.0' || typeof body.method !== 'string') {
-    return rpcError(null, -32600, 'Richiesta non valida.')
+    return rpcError(null, -32600, 'Invalid request.')
   }
   if (body.id === undefined) return null
 
@@ -107,10 +90,10 @@ export async function handleMcp(body) {
     case 'tools/list':
       return rpcResult(id, { tools: TOOLS })
     case 'tools/call':
-      return rpcResult(id, await callTool(params))
+      return rpcResult(id, await callTool(params, store, connectionId, waitMs))
     case 'ping':
       return rpcResult(id, {})
     default:
-      return rpcError(id, -32601, 'Metodo non trovato.')
+      return rpcError(id, -32601, 'Method not found.')
   }
 }

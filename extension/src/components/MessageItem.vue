@@ -29,7 +29,7 @@ const emit = defineEmits<{
       class="mt-2 text-base font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
       @click="emit('retry')"
     >
-      Riprova
+      Retry
     </button>
   </div>
 
@@ -37,7 +37,7 @@ const emit = defineEmits<{
     <div
       v-if="message.status === 'streaming' && !message.content"
       class="typing"
-      aria-label="Sta scrivendo"
+      aria-label="Typing"
     >
       <i /><i /><i />
     </div>

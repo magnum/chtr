@@ -12,7 +12,7 @@ const source = readFileSync(
 )
 const glyph = source.match(/d: "([^"]+)"/)?.[1]
 if (!glyph) {
-  throw new Error('Icona chat-bubble-bottom-center non trovata in @heroicons/vue.')
+  throw new Error('chat-bubble-bottom-center icon was not found in @heroicons/vue.')
 }
 
 function svg(size) {
