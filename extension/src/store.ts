@@ -39,8 +39,12 @@ function findChat(id: string): Chat | undefined {
 }
 
 function snapshot(): { chats: Chat[]; proxy: ProxyConfig | null } {
+  const chats = (JSON.parse(JSON.stringify(store.chats)) as Chat[]).map((chat) => ({
+    ...chat,
+    messages: chat.messages.filter((message) => !message.id.startsWith('typing:')),
+  }))
   return {
-    chats: JSON.parse(JSON.stringify(store.chats)) as Chat[],
+    chats,
     proxy: store.proxy ? { ...store.proxy } : null,
   }
 }
@@ -68,6 +72,44 @@ function scheduleSave(): void {
 let pollTimer = 0
 let polling = false
 let lastBotId = ''
+const waiting = new Map<string, number>()
+
+function typingId(chatId: string): string {
+  return `typing:${chatId}`
+}
+
+function showTyping(chat: Chat): void {
+  const id = typingId(chat.id)
+  if (chat.messages.some((message) => message.id === id)) return
+  chat.messages.push({
+    id,
+    role: 'assistant',
+    content: '',
+    createdAt: Date.now(),
+    status: 'streaming',
+  })
+}
+
+function hideTyping(chat: Chat): void {
+  const id = typingId(chat.id)
+  const index = chat.messages.findIndex((message) => message.id === id)
+  if (index >= 0) chat.messages.splice(index, 1)
+}
+
+function beginWait(chat: Chat): void {
+  waiting.set(chat.id, (waiting.get(chat.id) ?? 0) + 1)
+  showTyping(chat)
+}
+
+function endWait(chat: Chat): void {
+  const left = (waiting.get(chat.id) ?? 0) - 1
+  if (left > 0) {
+    waiting.set(chat.id, left)
+    return
+  }
+  waiting.delete(chat.id)
+  hideTyping(chat)
+}
 
 function knownIds(): Set<string> {
   const ids = new Set<string>()
@@ -81,6 +123,7 @@ function appendReply(item: { id: string; message: string; chatId: string }): voi
   if (knownIds().has(item.id)) return
   const chat = findChat(item.chatId) ?? findChat(store.activeChatId ?? '') ?? store.chats[0]
   if (!chat) return
+  endWait(chat)
   const message: ChatMessage = {
     id: item.id,
     role: 'assistant',
@@ -217,10 +260,14 @@ export function renameChat(id: string, title: string): void {
 
 async function deliver(chat: Chat, content: string): Promise<void> {
   const proxy = store.proxy
-  if (!proxy) return
+  if (!proxy) {
+    endWait(chat)
+    return
+  }
   try {
     await postExtension(proxy, content, chat.id)
   } catch (error) {
+    endWait(chat)
     chat.messages.push({
       id: crypto.randomUUID(),
       role: 'assistant',
@@ -249,6 +296,7 @@ export function sendMessage(chatId: string, text: string): boolean {
     status: 'complete',
   })
   chat.updatedAt = Date.now()
+  beginWait(chat)
   void persist()
   void deliver(chat, content)
   return true
@@ -265,10 +313,12 @@ export async function retryGeneration(chatId: string): Promise<void> {
   if (last?.role === 'assistant' && last.status === 'error') chat.messages.pop()
   const user = [...chat.messages].reverse().find((message) => message.role === 'user' && message.content.trim())
   if (!user) return
+  beginWait(chat)
   await deliver(chat, user.content)
 }
 
 export async function deleteChat(id: string): Promise<void> {
+  waiting.delete(id)
   store.chats = store.chats.filter((chat) => chat.id !== id)
   if (store.activeChatId === id) {
     store.activeChatId = null
